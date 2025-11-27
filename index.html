@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Patient Tracking App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f8ff;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .status-panel {
+            padding: 20px;
+            text-align: center;
+            background-color: #e8f4f8;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .status-active {
+            background-color: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-inactive {
+            background-color: #f44336;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .main-content {
+            padding: 20px;
+        }
+        
+        .info-card {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .info-card h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        
+        .info-card .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .battery-level {
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .battery-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .low-battery {
+            background-color: #f44336;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #da190b;
+        }
+        
+        .btn-warning {
+            background-color: #ff9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e68a00;
+        }
+        
+        .btn-info {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background-color: #0b7dda;
+        }
+        
+        .location-info {
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .location-info p {
+            margin-bottom: 10px;
+        }
+        
+        .tracking-status {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .tracking-status.active {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .tracking-status.inactive {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .coordinates {
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .timestamp {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Patient Tracking</h1>
+            <p>Alzheimer Care System</p>
+        </header>
+        
+        <div class="status-panel">
+            <span class="status-indicator status-active" id="trackingIndicator"></span>
+            <strong id="trackingStatus">Tracking Active</strong>
+        </div>
+        
+        <div class="main-content">
+            <div class="info-card">
+                <h3>Patient ID</h3>
+                <div class="value" id="patientId">P001</div>
+                <input type="text" id="patientIdInput" placeholder="Enter Patient ID" style="margin-top: 10px; padding: 5px; width: 100%;">
+                <button class="btn btn-info" id="setPatientId" style="margin-top: 10px;">Set ID</button>
+            </div>
+            
+            <div class="info-card">
+                <h3>Distance from Home</h3>
+                <div class="value" id="distanceValue">0.00 km</div>
+            </div>
+            
+            <div class="info-card">
+                <h3>Battery Level</h3>
+                <div class="value" id="batteryLevel">100%</div>
+                <div class="battery-level">
+                    <div class="battery-fill" id="batteryFill" style="width: 100%">100%</div>
+                </div>
+            </div>
+            
+            <div class="tracking-status active" id="trackingStatusCard">
+                <p>Live tracking is <strong>ACTIVE</strong></p>
+                <p class="timestamp" id="lastUpdate">Last update: Never</p>
+            </div>
+            
+            <div class="location-info">
+                <p><strong>Current Location:</strong> <span class="coordinates" id="currentLocation">Not available</span></p>
+                <p><strong>Home Location:</strong> <span class="coordinates" id="homeLocation">Not set</span></p>
+                <p><strong>Accuracy:</strong> <span id="locationAccuracy">Unknown</span></p>
+            </div>
+            
+            <div class="info-card" id="permissionsInfo" style="display: none;">
+                <h3>Location Permissions Required</h3>
+                <p>To enable location tracking:</p>
+                <ol>
+                    <li>Click the lock icon in your browser's address bar</li>
+                    <li>Select "Location" permissions</li>
+                    <li>Choose "Allow" or "Always allow"</li>
+                    <li>Refresh this page</li>
+                </ol>
+                <p><strong>Note:</strong> For mobile devices, ensure location services are enabled in your device settings.</p>
+            </div>
+            
+            <div id="messageContainer"></div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" id="startTracking">Start Tracking</button>
+                <button class="btn btn-danger" id="stopTracking">Stop Tracking</button>
+                <button class="btn btn-warning" id="sendEmergency">Emergency Call</button>
+                <button class="btn btn-info" id="sendLocation">Send Location</button>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Alzheimer Detection & Patient Tracking System</p>
+            <p>Your location is being securely tracked for safety</p>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'https://alzheimer-backend.onrender.com'; // Update with your deployed backend URL
+        const TRACKING_INTERVAL = 30000; // 30 seconds
+        
+        // State variables
+        let trackingInterval = null;
+        let isTracking = false;
+        let patientId = 'P001';
+        let homeLocation = null;
+        let batteryLevel = 100;
+        
+        // DOM Elements
+        const elements = {
+            trackingIndicator: document.getElementById('trackingIndicator'),
+            trackingStatus: document.getElementById('trackingStatus'),
+            patientId: document.getElementById('patientId'),
+            patientIdInput: document.getElementById('patientIdInput'),
+            setPatientId: document.getElementById('setPatientId'),
+            distanceValue: document.getElementById('distanceValue'),
+            batteryLevel: document.getElementById('batteryLevel'),
+            batteryFill: document.getElementById('batteryFill'),
+            trackingStatusCard: document.getElementById('trackingStatusCard'),
+            lastUpdate: document.getElementById('lastUpdate'),
+            currentLocation: document.getElementById('currentLocation'),
+            homeLocation: document.getElementById('homeLocation'),
+            locationAccuracy: document.getElementById('locationAccuracy'),
+            messageContainer: document.getElementById('messageContainer'),
+            startTracking: document.getElementById('startTracking'),
+            stopTracking: document.getElementById('stopTracking'),
+            sendEmergency: document.getElementById('sendEmergency'),
+            sendLocation: document.getElementById('sendLocation')
+        };
+        
+        // Initialize the app
+        function initApp() {
+            // Set up event listeners
+            elements.setPatientId.addEventListener('click', setPatientId);
+            elements.startTracking.addEventListener('click', startTracking);
+            elements.stopTracking.addEventListener('click', stopTracking);
+            elements.sendEmergency.addEventListener('click', sendEmergency);
+            elements.sendLocation.addEventListener('click', sendLocation);
+            
+            // Set initial state
+            updateTrackingUI();
+            
+            // Simulate battery drain
+            setInterval(simulateBatteryDrain, 60000); // 1% per minute
+        }
+        
+        // Set patient ID
+        function setPatientId() {
+            const newId = elements.patientIdInput.value.trim();
+            if (newId) {
+                patientId = newId;
+                elements.patientId.textContent = patientId;
+                elements.patientIdInput.value = '';
+                showMessage('Patient ID updated successfully', 'success');
+            } else {
+                showMessage('Please enter a valid Patient ID', 'error');
+            }
+        }
+        
+        // Start tracking
+        function startTracking() {
+            if (isTracking) return;
+            
+            isTracking = true;
+            updateTrackingUI();
+            
+            // Start location tracking
+            trackLocation();
+            trackingInterval = setInterval(trackLocation, TRACKING_INTERVAL);
+            
+            showMessage('Tracking started', 'success');
+        }
+        
+        // Stop tracking
+        function stopTracking() {
+            if (!isTracking) return;
+            
+            isTracking = false;
+            clearInterval(trackingInterval);
+            updateTrackingUI();
+            
+            showMessage('Tracking stopped', 'success');
+        }
+        
+        // Track location
+        function trackLocation() {
+            if (!navigator.geolocation) {
+                showMessage('Geolocation is not supported by this browser', 'error');
+                return;
+            }
+            
+            // Check if we're in a secure context (HTTPS)
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                showMessage('Geolocation requires HTTPS. Please access this app via HTTPS or localhost.', 'error');
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const location = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    };
+                    
+                    // Update UI
+                    updateLocationUI(location);
+                    
+                    // Send to backend
+                    sendLocationToBackend(location);
+                },
+                (error) => {
+                    console.error('Error getting location:', error);
+                    
+                    // Handle specific geolocation errors
+                    let errorMessage = '';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Location access denied. Please enable location permissions for this site.';
+                            // Show permissions info
+                            document.getElementById('permissionsInfo').style.display = 'block';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Location information is unavailable. Please check your device settings.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Location request timed out. Please try again.';
+                            break;
+                        default:
+                            errorMessage = `Error getting location: ${error.message}`;
+                            break;
+                    }
+                    
+                    showMessage(errorMessage, 'error');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 60000 // Use cached position up to 1 minute old
+                }
+            );
+        }
+        
+        // Send location to backend
+        function sendLocationToBackend(location) {
+            const data = {
+                patientId: patientId,
+                latitude: location.latitude,
+                longitude: location.longitude
+            };
+            
+            fetch(`${API_BASE_URL}/api/locations`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('Location sent successfully:', result);
+                
+                // Update distance if provided
+                if (result.location && result.location.distanceFromHome !== undefined) {
+                    elements.distanceValue.textContent = `${result.location.distanceFromHome.toFixed(2)} km`;
+                }
+                
+                // Update last update time
+                elements.lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+                
+                if (result.alertCreated) {
+                    showMessage('Alert created: Patient moved beyond safe zone!', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error sending location:', error);
+                showMessage(`Error sending location: ${error.message}`, 'error');
+            });
+        }
+        
+        // Send location manually
+        function sendLocation() {
+            trackLocation();
+        }
+        
+        // Send emergency alert
+        function sendEmergency() {
+            if (confirm('Are you sure you want to call for emergency help?')) {
+                // In a real app, this would trigger an emergency alert
+                showMessage('Emergency services notified', 'success');
+                
+                // Also send current location
+                sendLocation();
+            }
+        }
+        
+        // Update location UI
+        function updateLocationUI(location) {
+            elements.currentLocation.textContent = `${location.latitude.toFixed(6)}°, ${location.longitude.toFixed(6)}°`;
+            elements.locationAccuracy.textContent = `${location.accuracy.toFixed(0)} meters`;
+            elements.lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+        }
+        
+        // Update tracking UI
+        function updateTrackingUI() {
+            if (isTracking) {
+                elements.trackingIndicator.className = 'status-indicator status-active';
+                elements.trackingStatus.textContent = 'Tracking Active';
+                elements.trackingStatusCard.className = 'tracking-status active';
+                elements.startTracking.disabled = true;
+                elements.stopTracking.disabled = false;
+            } else {
+                elements.trackingIndicator.className = 'status-indicator status-inactive';
+                elements.trackingStatus.textContent = 'Tracking Inactive';
+                elements.trackingStatusCard.className = 'tracking-status inactive';
+                elements.startTracking.disabled = false;
+                elements.stopTracking.disabled = true;
+            }
+        }
+        
+        // Simulate battery drain
+        function simulateBatteryDrain() {
+            if (isTracking && batteryLevel > 5) {
+                batteryLevel -= 1;
+                updateBatteryUI();
+            }
+        }
+        
+        // Update battery UI
+        function updateBatteryUI() {
+            elements.batteryLevel.textContent = `${batteryLevel}%`;
+            elements.batteryFill.style.width = `${batteryLevel}%`;
+            elements.batteryFill.textContent = `${batteryLevel}%`;
+            
+            // Change color for low battery
+            if (batteryLevel < 20) {
+                elements.batteryFill.classList.add('low-battery');
+            } else {
+                elements.batteryFill.classList.remove('low-battery');
+            }
+        }
+        
+        // Show message
+        function showMessage(text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = text;
+            
+            elements.messageContainer.innerHTML = '';
+            elements.messageContainer.appendChild(messageDiv);
+            
+            // Remove message after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+        
+        // Initialize the app when the page loads
+        window.addEventListener('load', initApp);
+    </script>
+</body>
+</html>
