@@ -320,8 +320,17 @@
                 <div class="value" id="patientId" style="font-size: 0.9rem; margin-top: 5px; color: #666;">Patient ID: Not set</div>
                 
                 <div class="patient-id-input-container">
-                    <input type="text" id="patientIdInput" placeholder="Enter Patient ID (24-character hex)" style="width: 100%;">
+                    <input type="text" id="patientIdInput" placeholder="Enter 24-character Patient ID" style="width: 100%;">
                     <button id="setPatientId">Set</button>
+                </div>
+                
+                <div style="margin-top: 10px; font-size: 0.8rem; color: #666;">
+                    <p><strong>How to find your Patient ID:</strong></p>
+                    <ol style="text-align: left; padding-left: 20px;">
+                        <li>Log into the caregiver dashboard</li>
+                        <li>Select the patient you want to track</li>
+                        <li>Copy the 24-character ID shown in patient details</li>
+                    </ol>
                 </div>
                 
                 <div id="patientInfo" class="patient-info" style="display: none;">
@@ -487,12 +496,21 @@
             const patientIdInput = elements.patientIdInput.value.trim();
             
             // Validate patient ID format (MongoDB ObjectId is 24 hex characters)
-            if (!patientIdInput || !/^[0-9a-fA-F]{24}$/.test(patientIdInput)) {
-                showMessage('Please enter a valid 24-character hexadecimal Patient ID', 'error');
+            if (!patientIdInput) {
+                showMessage('Please enter a Patient ID', 'error');
+                return;
+            }
+            
+            // Check if it's a valid 24-character hex string
+            if (!/^[0-9a-fA-F]{24}$/.test(patientIdInput)) {
+                showMessage('Patient ID must be a 24-character hexadecimal string (0-9, a-f)', 'error');
                 return;
             }
             
             try {
+                // Show loading message
+                showMessage('Loading patient information...', 'success');
+                
                 // Fetch patient data from backend
                 const response = await fetch(`${API_BASE_URL}/api/patients/${patientIdInput}`, {
                     method: 'GET',
@@ -760,6 +778,12 @@
                     messageDiv.parentNode.removeChild(messageDiv);
                 }
             }, 5000);
+        }
+        
+        // Test function for debugging
+        function testPatientId() {
+            console.log('Current patient data:', patientData);
+            console.log('Input value:', elements.patientIdInput.value);
         }
         
         // Initialize the app when the page loads
