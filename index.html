@@ -255,6 +255,50 @@
         .sync-disconnected {
             background-color: #f44336;
         }
+        
+        .patient-id-input-container {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .patient-id-input-container input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .patient-id-input-container button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .patient-id-input-container button:hover {
+            background-color: #0056b3;
+        }
+        
+        .patient-info {
+            background-color: #e8f5e9;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+        }
+        
+        .patient-info h4 {
+            margin-top: 0;
+            color: #2e7d32;
+        }
+        
+        .patient-info p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -271,10 +315,22 @@
         
         <div class="main-content">
             <div class="info-card">
-                <h3>Patient ID</h3>
-                <div class="value" id="patientId">P001</div>
-                <input type="text" id="patientIdInput" placeholder="Enter Patient ID" style="margin-top: 10px; padding: 5px; width: 100%;">
-                <button class="btn btn-info" id="setPatientId" style="margin-top: 10px;">Set ID</button>
+                <h3>Patient Information</h3>
+                <div class="value" id="patientName">No patient selected</div>
+                <div class="value" id="patientId" style="font-size: 0.9rem; margin-top: 5px; color: #666;">Patient ID: Not set</div>
+                
+                <div class="patient-id-input-container">
+                    <input type="text" id="patientIdInput" placeholder="Enter Patient ID (24-character hex)" style="width: 100%;">
+                    <button id="setPatientId">Set</button>
+                </div>
+                
+                <div id="patientInfo" class="patient-info" style="display: none;">
+                    <h4>Patient Details</h4>
+                    <p><strong>Age:</strong> <span id="patientAge">-</span></p>
+                    <p><strong>Gender:</strong> <span id="patientGender">-</span></p>
+                    <p><strong>Contact:</strong> <span id="patientContact">-</span></p>
+                    <p><strong>Stage:</strong> <span id="patientStage">-</span></p>
+                </div>
             </div>
             
             <div class="info-card">
@@ -341,7 +397,7 @@
         // State variables
         let trackingInterval = null;
         let isTracking = false;
-        let patientId = 'P001';
+        let patientData = null; // Store full patient data including MongoDB ID
         let homeLocation = null;
         let batteryLevel = 100;
         let isConnected = true;
@@ -350,9 +406,15 @@
         const elements = {
             trackingIndicator: document.getElementById('trackingIndicator'),
             trackingStatus: document.getElementById('trackingStatus'),
+            patientName: document.getElementById('patientName'),
             patientId: document.getElementById('patientId'),
             patientIdInput: document.getElementById('patientIdInput'),
             setPatientId: document.getElementById('setPatientId'),
+            patientInfo: document.getElementById('patientInfo'),
+            patientAge: document.getElementById('patientAge'),
+            patientGender: document.getElementById('patientGender'),
+            patientContact: document.getElementById('patientContact'),
+            patientStage: document.getElementById('patientStage'),
             distanceValue: document.getElementById('distanceValue'),
             batteryLevel: document.getElementById('batteryLevel'),
             batteryFill: document.getElementById('batteryFill'),
@@ -378,6 +440,13 @@
             elements.stopTracking.addEventListener('click', stopTracking);
             elements.sendEmergency.addEventListener('click', sendEmergency);
             elements.sendLocation.addEventListener('click', sendLocation);
+            
+            // Allow Enter key to set patient ID
+            elements.patientIdInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    setPatientId();
+                }
+            });
             
             // Set initial state
             updateTrackingUI();
@@ -414,25 +483,18 @@
         }
         
         // Set patient ID
-        function setPatientId() {
-            const newId = elements.patientIdInput.value.trim();
-            if (newId) {
-                patientId = newId;
-                elements.patientId.textContent = patientId;
-                elements.patientIdInput.value = '';
-                showMessage('Patient ID updated successfully', 'success');
-                
-                // Try to fetch patient's home location
-                fetchPatientHomeLocation();
-            } else {
-                showMessage('Please enter a valid Patient ID', 'error');
+        async function setPatientId() {
+            const patientIdInput = elements.patientIdInput.value.trim();
+            
+            // Validate patient ID format (MongoDB ObjectId is 24 hex characters)
+            if (!patientIdInput || !/^[0-9a-fA-F]{24}$/.test(patientIdInput)) {
+                showMessage('Please enter a valid 24-character hexadecimal Patient ID', 'error');
+                return;
             }
-        }
-        
-        // Fetch patient's home location from backend
-        async function fetchPatientHomeLocation() {
+            
             try {
-                const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`, {
+                // Fetch patient data from backend
+                const response = await fetch(`${API_BASE_URL}/api/patients/${patientIdInput}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -440,27 +502,46 @@
                 });
                 
                 if (response.ok) {
-                    const patientData = await response.json();
+                    patientData = await response.json();
+                    
+                    // Update UI with patient information
+                    elements.patientName.textContent = patientData.name;
+                    elements.patientId.textContent = `Patient ID: ${patientData._id}`;
+                    elements.patientAge.textContent = patientData.age;
+                    elements.patientGender.textContent = patientData.gender;
+                    elements.patientContact.textContent = patientData.contact;
+                    elements.patientStage.textContent = patientData.alzheimerStage;
+                    elements.patientInfo.style.display = 'block';
+                    
+                    // Set home location if available
                     if (patientData.homeLocation) {
                         homeLocation = {
                             latitude: patientData.homeLocation.latitude,
                             longitude: patientData.homeLocation.longitude
                         };
                         elements.homeLocation.textContent = `${homeLocation.latitude.toFixed(6)}°, ${homeLocation.longitude.toFixed(6)}°`;
-                        showMessage('Home location loaded successfully', 'success');
                     }
+                    
+                    showMessage('Patient information loaded successfully', 'success');
                 } else {
-                    showMessage('Could not fetch patient home location', 'error');
+                    const errorData = await response.json();
+                    showMessage(`Error: ${errorData.message || 'Could not fetch patient data'}`, 'error');
                 }
             } catch (error) {
-                console.error('Error fetching patient home location:', error);
-                showMessage('Error fetching patient home location', 'error');
+                console.error('Error fetching patient data:', error);
+                showMessage(`Error fetching patient data: ${error.message}`, 'error');
             }
         }
         
         // Start tracking
         function startTracking() {
             if (isTracking) return;
+            
+            // Check if patient is selected
+            if (!patientData) {
+                showMessage('Please select a patient first', 'error');
+                return;
+            }
             
             isTracking = true;
             updateTrackingUI();
@@ -544,8 +625,14 @@
         
         // Send location to backend
         async function sendLocationToBackend(location) {
+            // Check if patient is selected
+            if (!patientData) {
+                showMessage('No patient selected. Please set a patient ID first.', 'error');
+                return;
+            }
+            
             const data = {
-                patientId: patientId,
+                patientId: patientData._id, // Use the actual MongoDB ID
                 latitude: location.latitude,
                 longitude: location.longitude
             };
@@ -578,8 +665,9 @@
                     
                     showMessage('Location updated successfully', 'success');
                 } else {
+                    const errorData = await response.json();
                     isConnected = false;
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'Unknown error'}`);
                 }
             } catch (error) {
                 console.error('Error sending location:', error);
@@ -597,6 +685,11 @@
         
         // Send emergency alert
         function sendEmergency() {
+            if (!patientData) {
+                showMessage('Please select a patient first', 'error');
+                return;
+            }
+            
             if (confirm('Are you sure you want to call for emergency help?')) {
                 // In a real app, this would trigger an emergency alert
                 showMessage('Emergency services notified', 'success');
